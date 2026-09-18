@@ -13,7 +13,6 @@ export const validate = (schema) => {
         if (validationErrors.length > 0) {
             console.error("Validation errors:", validationErrors);
             return res.status(400).json({
-                arabicMessage: "فشل التحقق من البيانات",
                 error: validationErrors
             });
         }

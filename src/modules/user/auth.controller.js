@@ -43,7 +43,7 @@ export const register = async (req, res) => {
         });
 
     } catch (error) {
-        throw new AppError(error.message || 'مشكلة في الخادم', 500);
+        throw new AppError(error.message || 'something went wrong', 500);
     }
 }
 
@@ -82,7 +82,7 @@ export const login = async (req, res) => {
         const { accessToken, refreshToken } = generateTokens(user);
         setRefreshTokenCookie(res, refreshToken);
 
-        return res.status(200).json({ success: true, user, accessToken, message: 'success in login' });
+        return res.status(200).json({ success: true, user, accessToken, role: user.role, message: 'success in login' });
     } catch (error) {
         console.log('login Error', error);
         throw new AppError(error.message, 500);
@@ -212,15 +212,4 @@ export const resetPassword = async (req, res) => {
         return res.status(500).json({ message: 'Password reset failed' });
     }
 };
-
-export const getMe = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const user = await User.findByPk(userId, { attributes: { exclude: ['password'] } });
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        return res.status(200).json({ message: 'User found', user });
-    } catch (err) {
-        return res.status(500).json({ message: err.message });
-    }
-}
 

@@ -5,31 +5,21 @@ import Cart from "./Cart.js";
 import Dish from "./Dish.js";
 import Order from "./Order.js";
 import OrderItems from "./OrderItems.js";
-import Payment from "./Payment.js";
 import Restaurant from "./Restaurant.js";
 import Review from "./Review.js";
+import RestaurantOrder from "./RestaurantOrder.js";
 
-// owner → restaurants
+// =================== USER ↔ RESTAURANT ===================
 User.hasMany(Restaurant, {
     foreignKey: "owner_id",
-    as: "restaurants",
+    as: "owned_restaurants",
 });
 Restaurant.belongsTo(User, {
     foreignKey: "owner_id",
     as: "owner",
 });
 
-// restaurant → categories
-Restaurant.hasMany(Category, {
-    foreignKey: "restaurant_id",
-    as: "categories",
-});
-Category.belongsTo(Restaurant, {
-    foreignKey: "restaurant_id",
-    as: "restaurant",
-});
-
-// category → dishes
+// =================== CATEGORY ↔ DISH ===================
 Category.hasMany(Dish, {
     foreignKey: "category_id",
     as: "dishes",
@@ -39,17 +29,17 @@ Dish.belongsTo(Category, {
     as: "category",
 });
 
-// restaurant → dishes
+// =================== RESTAURANT ↔ DISH ===================
 Restaurant.hasMany(Dish, {
     foreignKey: "restaurant_id",
-    as: "dishes",
+    as: "restaurant_dishes",
 });
 Dish.belongsTo(Restaurant, {
     foreignKey: "restaurant_id",
     as: "restaurant",
 });
 
-// users  ↔  CART
+// =================== USER ↔ CART ===================
 User.hasMany(Cart, {
     foreignKey: "user_id",
     as: "cart_items",
@@ -59,17 +49,17 @@ Cart.belongsTo(User, {
     as: "user",
 });
 
-// DISH  ↔  CART
+// =================== DISH ↔ CART ===================
 Dish.hasMany(Cart, {
     foreignKey: "dish_id",
-    as: "carts",
+    as: "dish_carts",
 });
 Cart.belongsTo(Dish, {
     foreignKey: "dish_id",
     as: "dish",
 });
 
-// users  ↔  ORDERS
+// =================== USER ↔ ORDER ===================
 User.hasMany(Order, {
     foreignKey: "user_id",
     as: "orders",
@@ -79,58 +69,58 @@ Order.belongsTo(User, {
     as: "customer",
 });
 
-// RESTAURANT  ↔  ORDERS
-Restaurant.hasMany(Order, {
-    foreignKey: "restaurant_id",
-    as: "orders",
-});
-Order.belongsTo(Restaurant, {
-    foreignKey: "restaurant_id",
-    as: "restaurant",
-});
-
-// orders  ↔  ORDER ITEMS
+// =================== ORDER ↔ ORDER ITEMS ===================
 Order.hasMany(OrderItems, {
     foreignKey: "order_id",
-    as: "items",
+    as: "order_items",
 });
 OrderItems.belongsTo(Order, {
     foreignKey: "order_id",
-    as: "order",
+    as: "parent_order",
 });
 
-// DISH  ↔  ORDER ITEMS
+// =================== ORDER ↔ RESTAURANT ORDERS ===================
+Order.hasMany(RestaurantOrder, {
+    foreignKey: "order_id",
+    as: "restaurant_orders",
+});
+RestaurantOrder.belongsTo(Order, {
+    foreignKey: "order_id",
+    as: "main_order",
+});
+
+// =================== RESTAURANT ↔ RESTAURANT ORDERS ===================
+Restaurant.hasMany(RestaurantOrder, {
+    foreignKey: "restaurant_id",
+    as: "orders",
+});
+RestaurantOrder.belongsTo(Restaurant, {
+    foreignKey: "restaurant_id",
+    as: "restaurant_details",
+});
+
+// =================== ORDER ITEMS ↔ DISH ===================
 Dish.hasMany(OrderItems, {
     foreignKey: "dish_id",
-    as: "order_items",
+    as: "dish_order_items",
 });
 OrderItems.belongsTo(Dish, {
     foreignKey: "dish_id",
     as: "dish",
 });
 
-
-// ORDER  ↔  PAYMENT
-Order.hasOne(Payment, {
-    foreignKey: "order_id",
-    as: "payment",
+// =================== RESTAURANT ORDER ↔ ORDER ITEMS ===================
+RestaurantOrder.hasMany(OrderItems, {
+    foreignKey: "restaurant_id",
+    as: "order_items",
 });
-Payment.belongsTo(Order, {
-    foreignKey: "order_id",
-    as: "order",
-});
-
-// users  ↔  REVIEWS
-User.hasMany(Review, {
-    foreignKey: "user_id",
-    as: "reviews",
-});
-Review.belongsTo(User, {
-    foreignKey: "user_id",
-    as: "user",
+OrderItems.belongsTo(RestaurantOrder, {
+    foreignKey: "restaurant_order_id",
+    as: "restaurant_order",
 });
 
-// DISH  ↔  REVIEWS
+// =================== USER ↔ REVIEW ===================
+// =================== DISH ↔ REVIEW ===================
 Dish.hasMany(Review, {
     foreignKey: "dish_id",
     as: "reviews",
@@ -140,14 +130,24 @@ Review.belongsTo(Dish, {
     as: "dish",
 });
 
-// users  ↔  REVOKED TOKENS
+// =================== RESTAURANT ↔ REVIEW ===================
+Restaurant.hasMany(Review, {
+    foreignKey: "restaurant_id",
+    as: "reviews",
+});
+Review.belongsTo(Restaurant, {
+    foreignKey: "restaurant_id",
+    as: "restaurant",
+});
+
+// =================== USER ↔ REVOKED TOKEN ===================
 User.hasMany(RevokedToken, {
     foreignKey: "user_id",
     as: "revoked_tokens",
 });
 RevokedToken.belongsTo(User, {
     foreignKey: "user_id",
-    as: "user",
+    as: "user_token",
 });
 
-export { User, RevokedToken, Category, Cart, Dish, Order, OrderItems, Payment, Restaurant, Review, };
+export { User, RevokedToken, Category, Cart, Dish, Order, OrderItems, Restaurant, Review, RestaurantOrder };

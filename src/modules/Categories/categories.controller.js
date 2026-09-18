@@ -1,20 +1,79 @@
 import Category from "../../DB/models/Category.js";
-import Restaurant from "../../DB/models/Restaurant.js";
-
+import Dish from "../../DB/models/Dish.js";
+import fs from "fs";
 
 export const getAllCategories = async (req, res) => {
-    const categories = await Category.findAll();
+    const categories = await Category.findAll({
+        attributes: ['id', 'name', 'image'],
+    });
     res.status(200).json({ categories, message: "List of all categories" });
 }
 
+export const getCategory = async (req, res) => {
+    const { id } = req.params;
+    const category = await Category.findOne({ where: { id } },);
+    if (!category) return res.status(404).json({ message: "Category not found" });
+
+    const dishes = await Dish.findAll({ where: { category_id: id } });
+    console.log(dishes);
+
+    res.status(200).json({ category, dishes, message: "Category details" });
+}
+
 export const addCategory = async (req, res) => {
-    const { name, restaurant_id } = req.body;
+    const { name } = req.body;
 
-    const owner = await Restaurant.findOne({ where: { id: restaurant_id, owner_id: req.user.id } });
-    if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
+    const image = `${req?.file && req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
 
-    const category = await Category.create({ name, restaurant_id });
+    const category = await Category.create({ name, image });
     res.status(201).json({ category, message: "Category added successfully" });
+}
+
+export const updateCategory = async (req, res) => {
+    const { id } = req.params;
+    const { name, image } = req.body;
+
+    const category = await Category.findOne({ where: { id } });
+    if (!category) return res.status(404).json({ message: "Category not found" });
+
+    if (req.file) {
+        if (category.dataValues.logo) {
+            const relativePath = category.image
+                .replace(`${req.protocol}://${req.get("host")}/`, '')
+                .replace(/\//g, '\\');
+
+            if (fs.existsSync(relativePath)) fs.unlinkSync(relativePath);
+        }
+
+        image = `${req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
+    }
+
+    const updateData = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (image !== undefined) updateData.image = image;
+
+    await category.update(updateData);
+
+    res.status(200).json({ category, message: "Category updated successfully" });
+}
+
+export const deleteCategory = async (req, res) => {
+    const { id } = req.params;
+
+    const category = await Category.findOne({ where: { id } });
+    if (!category) return res.status(404).json({ message: "Category not found" });
+
+    const dishes = await Dish.findAll({ where: { category_id: id } });
+    if (dishes.length > 0) return res.status(400).json({ message: "Cannot delete category with dishes" });
+
+    if (category.dataValues.image) {
+        const imagePath = category.image.replace(`${req.protocol}://${req.get("host")}/`, '').replace(/\//g, '\\');
+        if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+    }
+
+    await category.destroy();
+    res.status(200).json({ message: "Category deleted successfully" });
 }
 
 

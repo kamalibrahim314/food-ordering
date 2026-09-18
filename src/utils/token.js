@@ -8,8 +8,7 @@ export const generateTokens = (user) => {
     const uniqueId = uuidv4();
     let secret;
     if (user.dataValues.role === RoleEnum.ADMIN) secret = process.env.adminSegnature;
-    else if (user.dataValues.role === RoleEnum.CASHIER) secret = process.env.cashierSegnature;
-    else if (user.dataValues.role === RoleEnum.RESTAURANT_OWNER) secret = process.env.restaurant_ownerSegnature;
+    else if (user.dataValues.role === RoleEnum.RESTAURANT) secret = process.env.restaurantSegnature;
     else if (user.dataValues.role === RoleEnum.CUSTOMER) secret = process.env.customersSegnature;
     else throw new AppError("Invalid role", 400);
 
@@ -63,15 +62,13 @@ export const getTokenSignature = async (tokenType, prefix) => {
 
     if (tokenType === TokenType.access) {
         if (prefix === process.env.customersPrefix) return process.env.customersSegnature;
-        else if (prefix === process.env.cashierPrefix) return process.env.cashierSegnature;
+        else if (prefix === process.env.restaurantPrefix) return process.env.restaurantSegnature;
         else if (prefix === process.env.adminPrefix) return process.env.adminSegnature;
-        else if (prefix === process.env.restaurant_ownerPrefix) return process.env.restaurant_ownerSegnature;
         else return null;
     } else if (tokenType === TokenType.refresh) {
         if (prefix === process.env.customersPrefix) return process.env.customersSegnature;
-        else if (prefix === process.env.cashierPrefix) return process.env.cashierSegnature;
+        else if (prefix === process.env.restaurantPrefix) return process.env.restaurantSegnature;
         else if (prefix === process.env.adminPrefix) return process.env.adminSegnature;
-        else if (prefix === process.env.restaurant_ownerPrefix) return process.env.restaurant_ownerSegnature;
         else return null;
     }
     return null
@@ -94,3 +91,22 @@ export const decodeTokenAndFeachUser = async (token, signature) => {
     }
     return { user, decoded }
 }
+
+export const verifyAnyToken = (token) => {
+    const secrets = [
+        { role: RoleEnum.CUSTOMER, secret: process.env.customersSegnature },
+        { role: RoleEnum.RESTAURANT, secret: process.env.restaurantSegnature },
+        { role: RoleEnum.ADMIN, secret: process.env.adminSegnature },
+    ];
+
+    for (const item of secrets) {
+        try {
+            const decoded = jwt.verify(token, item.secret);
+            return { decoded, role: item.role, signature: item.secret };
+        } catch {
+            // continue to next secret  
+            continue;
+        }
+    }
+    throw new Error("Invalid token — no matching signature");
+};

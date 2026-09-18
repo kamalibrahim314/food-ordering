@@ -15,13 +15,10 @@ const DishImage = createUploader({ folder: "dishes", type: "images" });
 const dishRouter = Router();
 
 dishRouter.get("/", dishesController.getAllDishes);
+dishRouter.get("/:id", validate(dishesValidation.getDishSchema), dishesController.getDish);
 
-dishRouter.post("/addDish",
-    authentication(),
-    authorization(RoleEnum.RESTAURANT_OWNER),
-    upload(DishImage, 'single', 'image'),
-    validate(dishesValidation.addDishSchema),
-    dishesController.addDish
-);
+dishRouter.post("/addDish", authentication(), authorization(RoleEnum.RESTAURANT), upload(DishImage, 'single', 'image'), validate(dishesValidation.addDishSchema), dishesController.addDish);
+dishRouter.put("/updateDish/:id", authentication(), authorization(RoleEnum.RESTAURANT), upload(DishImage, 'single', 'image'), validate(dishesValidation.updateDishSchema), dishesController.updateDish);
+dishRouter.delete("/deleteDish/:id", authentication(), authorization(RoleEnum.RESTAURANT), validate(dishesValidation.deleteDishSchema), dishesController.deleteDish);
 
 export default dishRouter;

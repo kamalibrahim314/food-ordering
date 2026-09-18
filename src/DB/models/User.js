@@ -5,8 +5,7 @@ import { AppError } from "../../utils/appError.js";
 
 export const RoleEnum = {
   CUSTOMER: "customer",
-  CASHIER: "cashier",
-  RESTAURANT_OWNER: "restaurant_owner",
+  RESTAURANT: "restaurant",
   ADMIN: "admin",
 };
 
@@ -27,16 +26,10 @@ const User = sequelize.define("User", {
   otpAttempts: { type: DataTypes.INTEGER, defaultValue: 0 },
   otpBlockedUntil: { type: DataTypes.DATE, allowNull: true },
 
-},
-  {
-    sequelize, modelName: "User", tableName: "users", timestamps: true, defaultScope: {
-      attributes: { exclude: ["password"] },
-    },
-    scopes: {
-      withPassword: { attributes: { include: ["password"] } },
-    },
-  }
-);
+}, {
+  sequelize, modelName: "User", tableName: "users", timestamps: true, defaultScope: { attributes: { exclude: ["password"] }, },
+  scopes: { withPassword: { attributes: { include: ["password"] } }, },
+});
 
 // === Generate OTP ===
 User.prototype.generateOTP = function () {

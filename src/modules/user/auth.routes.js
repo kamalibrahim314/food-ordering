@@ -16,10 +16,8 @@ authRouter.post('/login', validate(authSchema.signInSchema), authController.logi
 authRouter.post("/logout", authentication(), authController.logout);
 authRouter.post("/refresh", authentication(TokenType.refresh), authController.refresh);
 
-authRouter.post("/forgotPassword", validate(authSchema.forgetPasswordSchema), authController.forgotPassword);
-authRouter.post("/verifyResetCode", validate(authSchema.verifyResetCodeSchema), authController.verifyResetCode);
-authRouter.post("/resetPassword", validate(authSchema.resetPasswordSchema), authController.resetPassword);
-
-authRouter.get("/me", authentication(), authController.getMe);
+// authRouter.post("/forgotPassword", validate(authSchema.forgetPasswordSchema), authController.forgotPassword);
+// authRouter.post("/verifyResetCode", validate(authSchema.verifyResetCodeSchema), authController.verifyResetCode);
+// authRouter.post("/resetPassword", validate(authSchema.resetPasswordSchema), authController.resetPassword);
 
 export default authRouter;

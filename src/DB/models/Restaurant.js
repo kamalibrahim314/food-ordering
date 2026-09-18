@@ -10,9 +10,8 @@ const Restaurant = sequelize.define("Restaurant", {
     phone_number: { type: DataTypes.STRING(15), allowNull: false },
     open_time: { type: DataTypes.TIME, allowNull: false },
     close_time: { type: DataTypes.TIME, allowNull: false },
-},
-    {
-        sequelize, modelName: "Restaurant", tableName: "restaurants", timestamps: true,
-    }
-);
+    average_rating: { type: DataTypes.FLOAT, defaultValue: 4.0 },
+    total_reviews: { type: DataTypes.INTEGER, defaultValue: 4 },
+}, { sequelize, modelName: "Restaurant", tableName: "restaurants", timestamps: true, });
+
 export default Restaurant;

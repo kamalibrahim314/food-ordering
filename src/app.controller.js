@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import express from "express"
+import http from "http"
 import cors from "cors"
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -19,6 +20,7 @@ import "./DB/models/associations.js"; // wherever you define associations
 import router from "./modules/index.js";
 
 import { AppError } from "./utils/appError.js";
+import { initializeSocket } from "./socket/socket.js";
 
 const app = express();
 const PORT = process.env.PORT || 5003;
@@ -61,7 +63,7 @@ export const bootstrap = () => {
     // rate limiting auth routes
     app.use("/auth", rateLimit({
         windowMs: 20 * 60 * 1000,
-        max: 20,
+        max: 1000000000,
         message: "Too many requests from this IP, please try again after 15 minutes",
         statusCode: 429,
         legacyHeaders: false,
@@ -81,6 +83,15 @@ export const bootstrap = () => {
 
     initDB();
 
+    const server = http.createServer(app);
+
+    const io = initializeSocket(server);
+
+    // Make io available in routes
+    app.use((req, res, next) => {
+        req.io = io;
+        next();
+    });
 
     // routes
     app.use('/', router)
@@ -99,15 +110,11 @@ export const bootstrap = () => {
             code: statusCode,
             status,
             message: err.message || 'An unexpected error occurred',
-            arabicMessage:
-                err.statusCode === 404
-                    ? 'الصفحة غير موجودة'
-                    : 'حدث خطأ ما، يرجى المحاولة لاحقاً',
         });
     });
 
     // start server
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`🔗 http://localhost:${PORT}`);
     });

@@ -13,3 +13,23 @@ export const addRestaurant = {
     file: Joi.object().required(),
 };
 
+export const updateRestaurant = {
+    params: Joi.object().keys({
+        id: Joi.number().integer().required(),
+    }), body: Joi.object().keys({
+        name: Joi.string().max(100).optional(),
+        describetion: Joi.string().optional(),
+        address: Joi.string().optional(),
+        phone_number: Joi.string().pattern(/^01[0125][0-9]{8}$/).optional(),
+        open_time: Joi.string().optional(),
+        close_time: Joi.string().optional(),
+    }),
+    file: Joi.object().optional(),
+};
+
+export const deleteRestaurant = {
+    params: Joi.object().keys({
+        id: Joi.number().integer().required(),
+    }),
+};
+

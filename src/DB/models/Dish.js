@@ -9,9 +9,8 @@ const Dish = sequelize.define("Dish", {
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     image: { type: DataTypes.STRING(255), allowNull: true },
     is_available: { type: DataTypes.BOOLEAN, defaultValue: true },
-},
-    {
-        sequelize, modelName: "Dish", tableName: "dishes", timestamps: true,
-    }
-);
+    average_rating: { type: DataTypes.FLOAT, defaultValue: 4.0 },
+    total_reviews: { type: DataTypes.INTEGER, defaultValue: 4 },
+}, { sequelize, modelName: "Dish", tableName: "dishes", timestamps: true, });
+
 export default Dish;
