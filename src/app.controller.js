@@ -89,7 +89,7 @@ app.use("/", async (req, res, next) => {
 app.use("/", router);
 
 // 404
-app.use("*", (req, res) => {
+app.use((req, res) => {
     throw new AppError(
         `invalid url ${req.originalUrl}`,
         404
