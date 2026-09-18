@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../DBConnection.js";
+import { formatImageUrl, normalizeUploadPath } from "../../utils/imageUrl.js";
 
 const Dish = sequelize.define("Dish", {
     restaurant_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -7,7 +8,17 @@ const Dish = sequelize.define("Dish", {
     name: { type: DataTypes.STRING(100), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: false },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    image: { type: DataTypes.STRING(255), allowNull: true },
+    image: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        get() {
+            const rawValue = this.getDataValue("image");
+            return formatImageUrl(rawValue);
+        },
+        set(val) {
+            this.setDataValue("image", normalizeUploadPath(val));
+        }
+    },
     is_available: { type: DataTypes.BOOLEAN, defaultValue: true },
     average_rating: { type: DataTypes.FLOAT, defaultValue: 4.0 },
     total_reviews: { type: DataTypes.INTEGER, defaultValue: 4 },

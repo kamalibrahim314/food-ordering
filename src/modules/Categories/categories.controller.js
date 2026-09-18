@@ -1,6 +1,7 @@
 import Category from "../../DB/models/Category.js";
 import Dish from "../../DB/models/Dish.js";
 import fs from "fs";
+import { safeUnlinkUpload, normalizeUploadPath } from "../../utils/imageUrl.js";
 
 export const getAllCategories = async (req, res) => {
     const categories = await Category.findAll({
@@ -23,7 +24,7 @@ export const getCategory = async (req, res) => {
 export const addCategory = async (req, res) => {
     const { name } = req.body;
 
-    const image = `${req?.file && req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
+    const image = req.file ? req.file.path.replace(/\\/g, "/") : (req.body.image ? normalizeUploadPath(req.body.image) : null);
 
     const category = await Category.create({ name, image });
     res.status(201).json({ category, message: "Category added successfully" });
@@ -39,17 +40,12 @@ export const updateCategory = async (req, res) => {
 
     if (req.file) {
         if (category.dataValues.image) {
-            try {
-                const relativePath = category.image
-                    .replace(`${req.protocol}://${req.get("host")}/`, '');
-
-                if (fs.existsSync(relativePath)) fs.unlinkSync(relativePath);
-            } catch (err) {
-                console.error("Error deleting old category image:", err.message);
-            }
+            safeUnlinkUpload(category.dataValues.image);
         }
 
-        image = `${req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
+        image = req.file.path.replace(/\\/g, "/");
+    } else if (image !== undefined) {
+        image = normalizeUploadPath(image);
     }
 
     const updateData = {};
@@ -72,8 +68,7 @@ export const deleteCategory = async (req, res) => {
     if (dishes.length > 0) return res.status(400).json({ message: "Cannot delete category with dishes" });
 
     if (category.dataValues.image) {
-        const imagePath = category.image.replace(`${req.protocol}://${req.get("host")}/`, '').replace(/\//g, '\\');
-        if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+        safeUnlinkUpload(category.dataValues.image);
     }
 
     await category.destroy();

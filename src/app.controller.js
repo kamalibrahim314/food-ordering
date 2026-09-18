@@ -21,15 +21,32 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
-// CORS configuration supporting comma-separated ALLOWED_ORIGINS and ALLOWED_ORIGIN
-const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || "http://localhost:3000";
-const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
+// CORS configuration supporting comma-separated ALLOWED_ORIGINS, ALLOWED_ORIGIN, and defaults
+const defaultAllowedOrigins = [
+    "https://foodie-silk-theta.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+];
+const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || "";
+const configuredOrigins = rawOrigins ? rawOrigins.split(",").map((o) => o.trim()).filter(Boolean) : [];
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...configuredOrigins])];
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) return true;
+    if (/^https:\/\/foodie.*\.vercel\.app$/.test(origin)) return true;
+    return false;
+};
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        if (isAllowedOrigin(origin)) {
             callback(null, true);
         } else {
             console.log("❌ Blocked origin:", origin);
@@ -37,8 +54,8 @@ app.use(cors({
         }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
     exposedHeaders: ["Content-length"],
 }));
 
@@ -73,6 +90,11 @@ app.use((req, res, next) => {
 
 app.use(
     "/uploads",
+    (req, res, next) => {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        next();
+    },
     express.static(path.join(__dirname, "../uploads"))
 );
 

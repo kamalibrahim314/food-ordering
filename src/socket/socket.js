@@ -9,9 +9,26 @@ const userSockets = new Map();
 const restaurantSockets = new Map();
 
 export const initializeSocket = (server) => {
+    const defaultAllowed = [
+        "https://foodie-silk-theta.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ];
+    const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || "";
+    const configuredOrigins = rawOrigins ? rawOrigins.split(",").map((o) => o.trim()).filter(Boolean) : [];
+    const allowedOrigins = [...new Set([...defaultAllowed, ...configuredOrigins])];
+
     io = new Server(server, {
         cors: {
-            origin: process.env.ALLOWED_ORIGIN || "http://localhost:3000",
+            origin: (origin, callback) => {
+                if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin) || /^https:\/\/foodie.*\.vercel\.app$/.test(origin)) {
+                    callback(null, true);
+                } else {
+                    callback(new Error("Blocked by CORS"));
+                }
+            },
             methods: ["GET", "POST"],
             credentials: true
         },

@@ -2,6 +2,7 @@ import { DataTypes } from "sequelize";
 import crypto from "crypto";
 import { sequelize } from "../DBConnection.js";
 import { AppError } from "../../utils/appError.js";
+import { formatImageUrl, normalizeUploadPath } from "../../utils/imageUrl.js";
 
 export const RoleEnum = {
   CUSTOMER: "customer",
@@ -17,7 +18,17 @@ const User = sequelize.define("User", {
   password: { type: DataTypes.STRING(255), allowNull: false },
   role: { type: DataTypes.ENUM(...Object.values(RoleEnum)), defaultValue: RoleEnum.CUSTOMER },
   isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
-  profile_image: { type: DataTypes.STRING(500), defaultValue: "" },
+  profile_image: {
+    type: DataTypes.STRING(500),
+    defaultValue: "",
+    get() {
+      const rawValue = this.getDataValue("profile_image");
+      return rawValue ? formatImageUrl(rawValue) : "";
+    },
+    set(val) {
+      this.setDataValue("profile_image", val ? normalizeUploadPath(val) : "");
+    }
+  },
 
   otp: { type: DataTypes.STRING(6), allowNull: true },
   otpExpiresAt: { type: DataTypes.DATE, allowNull: true },

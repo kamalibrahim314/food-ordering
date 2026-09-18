@@ -3,6 +3,7 @@ import Dish from "../../DB/models/Dish.js";
 import Restaurant from "../../DB/models/Restaurant.js";
 import User, { RoleEnum } from "../../DB/models/User.js";
 import fs from "fs";
+import { safeUnlinkUpload } from "../../utils/imageUrl.js";
 
 
 export const getAllRestaurants = async (req, res) => {
@@ -38,7 +39,7 @@ export const addRestaurant = async (req, res) => {
     const existingRestaurant = await Restaurant.findOne({ where: { owner_id } });
     if (existingRestaurant) return res.status(400).json({ message: "Restaurant already exists for this owner" });
 
-    const logo = `${req?.file && req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
+    const logo = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
     const restaurant = await Restaurant.create({ owner_id, name, describetion, logo, address, phone_number, open_time, close_time });
     res.status(201).json({ restaurant, message: "Restaurant added successfully" });
@@ -58,14 +59,10 @@ export const updateRestaurant = async (req, res) => {
 
     if (req.file) {
         if (restaurant.dataValues.logo) {
-            const relativePath = restaurant.logo
-                .replace(`${req.protocol}://${req.get("host")}/`, '')
-                .replace(/\//g, '\\');
-
-            if (fs.existsSync(relativePath)) fs.unlinkSync(relativePath);
+            safeUnlinkUpload(restaurant.dataValues.logo);
         }
 
-        image = `${req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
+        image = req.file.path.replace(/\\/g, "/");
     }
 
     const updateData = {};
@@ -94,8 +91,7 @@ export const deleteRestaurant = async (req, res) => {
     if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
 
     if (restaurant.dataValues.logo) {
-        const imagePath = restaurant.logo.replace(`${req.protocol}://${req.get("host")}/`, '').replace(/\//g, '\\');
-        if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+        safeUnlinkUpload(restaurant.dataValues.logo);
     }
 
     await restaurant.destroy();

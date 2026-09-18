@@ -2,6 +2,7 @@ import Category from "../../DB/models/Category.js";
 import Dish from "../../DB/models/Dish.js";
 import Restaurant from "../../DB/models/Restaurant.js";
 import fs from "fs";
+import { safeUnlinkUpload, normalizeUploadPath } from "../../utils/imageUrl.js";
 
 export const getAllDishes = async (req, res) => {
     try {
@@ -66,7 +67,7 @@ export const getDish = async (req, res) => {
 export const addDish = async (req, res) => {
     try {
         const { restaurant_id, category_id, name, description, price, is_available } = req.body;
-        const image = `${req?.file && req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;
+        const image = req.file ? req.file.path.replace(/\\/g, "/") : (req.body.image ? normalizeUploadPath(req.body.image) : null);
 
         const category = await Category.findOne({ where: { id: category_id } });
         if (!category) return res.status(404).json({ message: "Category not found" });
@@ -97,15 +98,12 @@ export const updateDish = async (req, res) => {
 
     let image;
     if (req.file) {
-        // delete old image if exists
-        const dishToUpdate = await Dish.findOne({ where: { id } });
-        if (!dishToUpdate) return res.status(404).json({ message: "Dish not found" });
-
-        if (dishToUpdate.dataValues.image) {
-            const imagePath = dishToUpdate.image.replace(`${req.protocol}://${req.get("host")}/`, '').replace(/\//g, '\\');
-            if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+        if (dish.dataValues.image) {
+            safeUnlinkUpload(dish.dataValues.image);
         }
-        image = `${req?.file && req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`
+        image = req.file.path.replace(/\\/g, "/");
+    } else if (req.body.image !== undefined) {
+        image = normalizeUploadPath(req.body.image);
     }
 
     const updateData = {};
@@ -114,7 +112,7 @@ export const updateDish = async (req, res) => {
         if (!category) return res.status(404).json({ message: "Category not found" });
         updateData.category_id = category_id;
     };
-    if (image) updateData.image = image;
+    if (image !== undefined) updateData.image = image;
     if (name) updateData.name = name;
     if (description) updateData.description = description;
     if (price) updateData.price = price;
@@ -135,8 +133,7 @@ export const deleteDish = async (req, res) => {
     if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
 
     if (dish.dataValues.image) {
-        const imagePath = dish.image.replace(`${req.protocol}://${req.get("host")}/`, '').replace(/\//g, '\\');
-        if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+        safeUnlinkUpload(dish.dataValues.image);
     }
 
     await dish.destroy();
