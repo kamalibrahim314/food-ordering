@@ -9,6 +9,10 @@ import ReviewRouter from "./review/rewiews.routes.js";
 
 const router = Router();
 
+router.get("/", (req, res) => {
+    res.send("Hello from API");
+});
+
 router.use('/auth', authRouter);
 router.use('/restaurant', restaurantRouter);
 router.use('/dish', dishRouter);
