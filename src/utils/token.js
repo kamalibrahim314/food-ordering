@@ -44,10 +44,11 @@ export const generateTokens = (user) => {
 };
 
 export const setRefreshTokenCookie = (res, token) => {
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie('jwt', token, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: isProduction ? 'None' : 'Lax',
         maxAge: 12 * 30 * 24 * 60 * 60 * 1000, // 12 months
     });
 };

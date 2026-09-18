@@ -31,18 +31,22 @@ export const addCategory = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
     const { id } = req.params;
-    const { name, image } = req.body;
+    const { name } = req.body;
+    let image = req.body.image;
 
     const category = await Category.findOne({ where: { id } });
     if (!category) return res.status(404).json({ message: "Category not found" });
 
     if (req.file) {
-        if (category.dataValues.logo) {
-            const relativePath = category.image
-                .replace(`${req.protocol}://${req.get("host")}/`, '')
-                .replace(/\//g, '\\');
+        if (category.dataValues.image) {
+            try {
+                const relativePath = category.image
+                    .replace(`${req.protocol}://${req.get("host")}/`, '');
 
-            if (fs.existsSync(relativePath)) fs.unlinkSync(relativePath);
+                if (fs.existsSync(relativePath)) fs.unlinkSync(relativePath);
+            } catch (err) {
+                console.error("Error deleting old category image:", err.message);
+            }
         }
 
         image = `${req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`;

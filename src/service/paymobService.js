@@ -1,7 +1,7 @@
 // services/paymobService.js
 import axios from "axios";
 import crypto from "crypto";
-import { AppError } from "../utils/appError";
+import { AppError } from "../utils/appError.js";
 
 const PAYMOB_API_URL = process.env.PAYMOB_API_URL || "https://accept.paymob.com/api";
 
@@ -99,7 +99,14 @@ const isValidHmac = (payload) => {
     }
 };
 
-module.exports = {
+export {
+    getAuthToken,
+    createOrder,
+    generatePaymentKey,
+    isValidHmac,
+};
+
+export default {
     getAuthToken,
     createOrder,
     generatePaymentKey,

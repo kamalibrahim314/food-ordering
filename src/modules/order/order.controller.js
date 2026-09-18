@@ -65,7 +65,7 @@ export const createOrder = async (req, res, next) => {
                 });
             }
 
-            req.io.to(`restaurant_${restaurantId}`).emit("new_order", {
+            req.io?.to(`restaurant_${restaurantId}`)?.emit("new_order", {
                 order_id: order.id,
                 restaurant_order_id: restaurantOrder.id,
                 items: itemsByRestaurant[restaurantId],
@@ -78,7 +78,7 @@ export const createOrder = async (req, res, next) => {
 
         await Cart.destroy({ where: { user_id: req.user.id } });
 
-        req.io.to(`user_${userId}`).emit("order_created_success", {
+        req.io?.to(`user_${userId}`)?.emit("order_created_success", {
             order_id: order.id,
             total_amount: totalAmount,
             restaurants_count: Object.keys(itemsByRestaurant).length
@@ -118,7 +118,7 @@ export const acceptOrder = async (req, res, next) => {
 
         await restaurantOrder.update({ status: statuses.accepted });
 
-        req.io.to(`order_${restaurantOrder.order_id}`).emit("restaurant_accepted", {
+        req.io?.to(`order_${restaurantOrder.order_id}`)?.emit("restaurant_accepted", {
             order_id: restaurantOrder.order_id,
             restaurant_order_id: restaurantOrderId,
             restaurant_id: restaurantId,
@@ -136,7 +136,7 @@ export const acceptOrder = async (req, res, next) => {
         if (allAccepted) {
             await Order.update({ status: 'accepted' }, { where: { id: restaurantOrder.order_id } });
 
-            req.io.to(`order_${restaurantOrder.order_id}`).emit("order_accepted", {
+            req.io?.to(`order_${restaurantOrder.order_id}`)?.emit("order_accepted", {
                 order_id: restaurantOrder.order_id,
                 status: 'accepted',
                 message: "All restaurants have accepted the order"
@@ -186,7 +186,7 @@ export const updateRestaurantOrderStatus = async (req, res, next) => {
 
         await restaurantOrder.update({ status });
 
-        req.io.to(`order_${restaurantOrder.order_id}`).emit("order_status_update", {
+        req.io?.to(`order_${restaurantOrder.order_id}`)?.emit("order_status_update", {
             order_id: restaurantOrder.order_id,
             restaurant_order_id: restaurantOrder.id,
             restaurant_id: restaurantId,
@@ -220,7 +220,7 @@ export const updateRestaurantOrderStatus = async (req, res, next) => {
                     break;
             }
 
-            req.io.to(`order_${restaurantOrder.order_id}`).emit("order_status_synchronized", {
+            req.io?.to(`order_${restaurantOrder.order_id}`)?.emit("order_status_synchronized", {
                 order_id: restaurantOrder.order_id,
                 status: status,
                 message: message,
@@ -270,7 +270,7 @@ export const cancelOrder = async (req, res, next) => {
         );
 
         order.restaurant_orders.forEach(restaurantOrder => {
-            req.io.to(`restaurant_${restaurantOrder.restaurant_id}`).emit("order_cancelled", {
+            req.io?.to(`restaurant_${restaurantOrder.restaurant_id}`)?.emit("order_cancelled", {
                 order_id: order_id,
                 restaurant_order_id: restaurantOrder.id,
                 user_id: userId,
@@ -278,7 +278,7 @@ export const cancelOrder = async (req, res, next) => {
             });
         });
 
-        req.io.to(`order_${order_id}`).emit("order_cancelled_success", {
+        req.io?.to(`order_${order_id}`)?.emit("order_cancelled_success", {
             order_id: order_id,
             message: "Order cancelled successfully"
         });

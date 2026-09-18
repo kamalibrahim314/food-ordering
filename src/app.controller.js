@@ -13,7 +13,7 @@ import xss from "xss";
 import { connectDB, syncDB } from "./DB/DBConnection.js";
 import "./DB/models/associations.js";
 import router from "./modules/index.js";
-
+import { getSocketInstance } from "./socket/socket.js";
 import { AppError } from "./utils/appError.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,23 +23,17 @@ const app = express();
 
 app.use(helmet());
 
-app.use((req, res, next) => {
-    if (req.body && Object.keys(req.body).length) {
-        Object.assign(req.body, JSON.parse(xss(JSON.stringify(req.body))));
-    }
-
-    next();
-});
-
-const allowedOrigins = process.env.ALLOWED_ORIGIN || "http://localhost:3000";
+// CORS configuration supporting comma-separated ALLOWED_ORIGINS and ALLOWED_ORIGIN
+const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || "http://localhost:3000";
+const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
             callback(null, true);
         } else {
             console.log("❌ Blocked origin:", origin);
-            callback(new Error("Not allowed by CORS"));
+            callback(null, false);
         }
     },
     credentials: true,
@@ -59,21 +53,50 @@ app.use("/auth", rateLimit({
 app.use(cookieParser());
 app.use(express.json());
 
+// XSS sanitizer middleware (executed AFTER body parsing)
+app.use((req, res, next) => {
+    if (req.body && typeof req.body === "object" && Object.keys(req.body).length) {
+        try {
+            Object.assign(req.body, JSON.parse(xss(JSON.stringify(req.body))));
+        } catch {
+            // preserve req.body if stringify/parse fails
+        }
+    }
+    next();
+});
+
+// Attach socket.io instance to req if available
+app.use((req, res, next) => {
+    req.io = getSocketInstance();
+    next();
+});
+
 app.use(
     "/uploads",
     express.static(path.join(__dirname, "../uploads"))
 );
 
-// Initialize DB once
+// Initialize DB once with shared promise to handle cold starts
 let dbInitialized = false;
+let dbInitPromise = null;
 
 const initializeDB = async () => {
     if (dbInitialized) return;
 
-    await connectDB();
-    await syncDB();
+    if (!dbInitPromise) {
+        dbInitPromise = (async () => {
+            await connectDB();
+            if (process.env.NODE_ENV !== "production" || process.env.DB_SYNC === "true") {
+                await syncDB();
+            }
+            dbInitialized = true;
+        })().catch((err) => {
+            dbInitPromise = null; // allow retry on next request if connection failed
+            throw err;
+        });
+    }
 
-    dbInitialized = true;
+    await dbInitPromise;
 };
 
 // Routes
