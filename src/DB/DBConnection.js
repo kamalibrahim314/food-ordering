@@ -40,6 +40,9 @@ export const connectDB = async () => {
 };
 
 export const syncDB = async () => {
+    if (process.env.SYNC_DB !== "true") {
+        return;
+    }
     try {
         await sequelize.sync({ alter: false });
         console.log("✅ All models synced successfully.");

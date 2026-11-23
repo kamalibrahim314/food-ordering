@@ -10,10 +10,10 @@ export const getAllDishes = async (req, res) => {
     try {
         const dishes = await Dish.findAll(
             {
-                attributes: ['id', 'name', 'description', 'price', 'image', 'is_available'],
+                attributes: ['id', 'restaurant_id', 'category_id', 'name', 'description', 'price', 'image', 'is_available', 'average_rating', 'total_reviews'],
                 include: [
-                    { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'] },
-                    { model: Category, as: 'category', attributes: ['name'] },
+                    { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'logo', 'average_rating', 'open_time', 'close_time'] },
+                    { model: Category, as: 'category', attributes: ['id', 'name'] },
                 ],
             }
         );
@@ -54,10 +54,10 @@ export const getDish = async (req, res) => {
     const { id } = req.params;
     const dish = await Dish.findOne({
         where: { id },
-        attributes: ['name', 'description', 'price', 'image', 'is_available'],
+        attributes: ['id', 'restaurant_id', 'category_id', 'name', 'description', 'price', 'image', 'is_available', 'average_rating', 'total_reviews'],
         include: [
-            { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'] },
-            { model: Category, as: 'category', attributes: ['name'] },
+            { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'logo', 'average_rating', 'open_time', 'close_time'] },
+            { model: Category, as: 'category', attributes: ['id', 'name'] },
         ],
     });
     if (!dish) return res.status(404).json({ message: "Dish not found" });

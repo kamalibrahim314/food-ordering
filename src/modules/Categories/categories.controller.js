@@ -1,5 +1,6 @@
 import Category from "../../DB/models/Category.js";
 import Dish from "../../DB/models/Dish.js";
+import Restaurant from "../../DB/models/Restaurant.js";
 import { safeUnlinkUpload, normalizeUploadPath } from "../../utils/imageUrl.js";
 import { uploadStreamToCloudinary } from "../../utils/cloudinary.js";
 
@@ -15,7 +16,13 @@ export const getCategory = async (req, res) => {
     const category = await Category.findOne({ where: { id } });
     if (!category) return res.status(404).json({ message: "Category not found" });
 
-    const dishes = await Dish.findAll({ where: { category_id: id } });
+    const dishes = await Dish.findAll({
+        where: { category_id: id },
+        attributes: ['id', 'restaurant_id', 'category_id', 'name', 'description', 'price', 'image', 'is_available', 'average_rating', 'total_reviews'],
+        include: [
+            { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'logo'] }
+        ]
+    });
 
     res.status(200).json({ category, dishes, message: "Category details" });
 }

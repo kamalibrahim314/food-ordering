@@ -21,15 +21,14 @@ export const getRestaurant = async (req, res) => {
         const restaurant = await Restaurant.findOne({ where: { id } });
         if (!restaurant) return res.status(404).json({ message: "Restaurant not found" });
 
-        const dishes = await Dish.findAll({ where: { restaurant_id: id } },
-            {
-                attributes: ['name', 'description', 'price', 'image', 'is_available'],
-                include: [
-                    { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'] },
-                    { model: Category, as: 'category', attributes: ['name'] },
-                ],
-            }
-        );
+        const dishes = await Dish.findAll({
+            where: { restaurant_id: id },
+            attributes: ['id', 'restaurant_id', 'category_id', 'name', 'description', 'price', 'image', 'is_available', 'average_rating', 'total_reviews'],
+            include: [
+                { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'logo'] },
+                { model: Category, as: 'category', attributes: ['id', 'name'] },
+            ],
+        });
 
         res.status(200).json({ restaurant, dishes, message: "Restaurant details" });
     } catch (err) {
@@ -127,14 +126,13 @@ export const getMyRestaurant = async (req, res) => {
         const restaurant = await Restaurant.findOne({ where: { owner_id: req.user.id } });
         if (!restaurant) return res.status(404).json({ message: "Restaurant not found for this user" });
 
-        const dishes = await Dish.findAll({ where: { restaurant_id: restaurant.id } },
-            {
-                attributes: ['id', 'name', 'description', 'price', 'image', 'is_available'],
-                include: [
-                    { model: Category, as: 'category', attributes: ['name'] },
-                ],
-            }
-        );
+        const dishes = await Dish.findAll({
+            where: { restaurant_id: restaurant.id },
+            attributes: ['id', 'restaurant_id', 'category_id', 'name', 'description', 'price', 'image', 'is_available', 'average_rating', 'total_reviews'],
+            include: [
+                { model: Category, as: 'category', attributes: ['id', 'name'] },
+            ],
+        });
         res.status(200).json({ restaurant, dishes, message: "My restaurant details" });
     } catch (err) {
         res.status(500).json({ message: err.message || "Failed to get my restaurant" });
