@@ -7,6 +7,12 @@ const RestaurantOrder = sequelize.define("RestaurantOrder", {
     restaurant_id: { type: DataTypes.INTEGER, allowNull: false },
     status: { type: DataTypes.ENUM(Object.values(statuses)), defaultValue: statuses.pending },
     total_amount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-}, { sequelize, modelName: "RestaurantOrder", tableName: "restaurantOrders", timestamps: true, });
+}, {
+    sequelize,
+    modelName: "RestaurantOrder",
+    tableName: "restaurantorders",
+    freezeTableName: true,
+    timestamps: true,
+});
 
 export default RestaurantOrder;

@@ -15,6 +15,12 @@ const Category = sequelize.define("Category", {
             this.setDataValue("image", normalizeUploadPath(val));
         }
     },
-}, { sequelize, modelName: "Category", tableName: "categories", timestamps: true, });
+}, {
+    sequelize,
+    modelName: "Category",
+    tableName: "categories",
+    freezeTableName: true,
+    timestamps: true,
+});
 
 export default Category;

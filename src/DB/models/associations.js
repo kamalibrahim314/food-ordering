@@ -111,12 +111,22 @@ OrderItems.belongsTo(Dish, {
 
 // =================== RESTAURANT ORDER ↔ ORDER ITEMS ===================
 RestaurantOrder.hasMany(OrderItems, {
-    foreignKey: "restaurant_id",
+    foreignKey: "restaurant_order_id",
     as: "order_items",
 });
 OrderItems.belongsTo(RestaurantOrder, {
     foreignKey: "restaurant_order_id",
     as: "restaurant_order",
+});
+
+// =================== RESTAURANT ↔ ORDER ITEMS ===================
+Restaurant.hasMany(OrderItems, {
+    foreignKey: "restaurant_id",
+    as: "order_items",
+});
+OrderItems.belongsTo(Restaurant, {
+    foreignKey: "restaurant_id",
+    as: "restaurant",
 });
 
 // =================== USER ↔ REVIEW ===================

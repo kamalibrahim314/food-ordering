@@ -38,8 +38,13 @@ const User = sequelize.define("User", {
   otpBlockedUntil: { type: DataTypes.DATE, allowNull: true },
 
 }, {
-  sequelize, modelName: "User", tableName: "users", timestamps: true, defaultScope: { attributes: { exclude: ["password"] }, },
-  scopes: { withPassword: { attributes: { include: ["password"] } }, },
+  sequelize,
+  modelName: "User",
+  tableName: "users",
+  freezeTableName: true,
+  timestamps: true,
+  defaultScope: { attributes: { exclude: ["password"] } },
+  scopes: { withPassword: { attributes: { include: ["password"] } } },
 });
 
 // === Generate OTP ===

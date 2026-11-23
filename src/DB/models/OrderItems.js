@@ -10,6 +10,13 @@ const Order_items = sequelize.define("Order_items", {
     quantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     special_instructions: { type: DataTypes.TEXT, allowNull: true },
     total_price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-}, { sequelize, modelName: "Order_items", tableName: "order_items", timestamps: true, });
+    restaurant_order_id: { type: DataTypes.INTEGER, allowNull: true },
+}, {
+    sequelize,
+    modelName: "Order_items",
+    tableName: "order_items",
+    freezeTableName: true,
+    timestamps: true,
+});
 
 export default Order_items;

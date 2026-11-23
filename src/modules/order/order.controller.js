@@ -61,7 +61,8 @@ export const createOrder = async (req, res, next) => {
                 await OrderItems.create({
                     ...item,
                     order_id: order.id,
-                    restaurant_id: restaurantId,
+                    restaurant_id: Number(restaurantId),
+                    restaurant_order_id: restaurantOrder.id,
                 });
             }
 

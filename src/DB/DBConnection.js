@@ -14,6 +14,9 @@ export const sequelize = new Sequelize(
         dialect: "mysql",
         dialectModule: mysql2,
         logging: false,
+        define: {
+            freezeTableName: true,
+        },
         pool: {
             max: 5,
             min: 0,

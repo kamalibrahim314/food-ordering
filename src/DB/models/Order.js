@@ -17,7 +17,13 @@ const Order = sequelize.define("Order", {
     address: { type: DataTypes.STRING(255), allowNull: false },
     special_instructions: { type: DataTypes.TEXT, allowNull: true },
 
-}, { sequelize, modelName: "Order", tableName: "orders", timestamps: true, });
+}, {
+    sequelize,
+    modelName: "Order",
+    tableName: "orders",
+    freezeTableName: true,
+    timestamps: true,
+});
 
 export default Order;
 

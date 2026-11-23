@@ -8,6 +8,12 @@ const Review = sequelize.define("Review", {
     rating: { type: DataTypes.INTEGER, allowNull: false },
     comment: { type: DataTypes.TEXT, allowNull: true },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { sequelize, modelName: "Review", tableName: "reviews", timestamps: true, });
+}, {
+    sequelize,
+    modelName: "Review",
+    tableName: "reviews",
+    freezeTableName: true,
+    timestamps: true,
+});
 
 export default Review;
