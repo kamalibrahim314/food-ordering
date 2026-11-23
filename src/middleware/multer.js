@@ -1,6 +1,4 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { AppError } from "../utils/appError.js";
 
 // --- Allowed file types ---
@@ -35,40 +33,29 @@ const fileFilter = (allowedTypes) => (req, file, cb) => {
     );
 };
 
-// --- Dynamic Disk Storage ---
-const diskStorage = (folder = "general") =>
-  multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadPath = path.join("uploads", folder);
-      if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-      cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-      const ext = path.extname(file.originalname);
-      const base = path.basename(file.originalname, ext);
-      cb(null, `${base}-${uniqueSuffix}${ext}`);
-    },
-  });
-
-// --- Create Multer instance dynamically ---
+// --- Create Multer instance dynamically with Memory Storage (no disk writes) ---
 export const createUploader = (options = {}) => {
   const {
-    folder = "general",
     type = "images",
-    useMemory = false,
+    folder = "general",
   } = options;
 
   const allowedTypes = MIME_TYPES[type] || MIME_TYPES.images;
   const fileSizeLimit = FILE_LIMITS[type] || FILE_LIMITS.images;
 
-  const storage = useMemory ? multer.memoryStorage() : diskStorage(folder);
+  // Always use memoryStorage to ensure compatibility with serverless environments (e.g. Vercel)
+  const storage = multer.memoryStorage();
 
-  return multer({
+  const instance = multer({
     storage,
     fileFilter: fileFilter(allowedTypes),
     limits: { fileSize: fileSizeLimit },
   });
+
+  // Attach default folder destination metadata
+  instance.targetFolder = folder;
+
+  return instance;
 };
 
 // --- Main handler ---
@@ -96,6 +83,12 @@ export const upload = (multerInstance, type, field, maxCount = 1) => {
       } else if (err) {
         return next(new AppError(`Upload failed: ${err.message}`, 500));
       }
+
+      // Attach configured folder to request if available
+      if (multerInstance?.targetFolder) {
+        req.uploadFolder = multerInstance.targetFolder;
+      }
+
       next();
     });
   };

@@ -7,7 +7,7 @@ const Restaurant = sequelize.define("Restaurant", {
     name: { type: DataTypes.STRING(100), allowNull: false },
     describetion: { type: DataTypes.TEXT, allowNull: false },
     logo: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(500),
         allowNull: true,
         get() {
             const rawValue = this.getDataValue("logo");

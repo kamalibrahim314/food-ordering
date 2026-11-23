@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import { deleteFromCloudinary } from "./cloudinary.js";
 
 /**
  * Resolves the public base URL of the API.
@@ -32,62 +33,92 @@ export const getBaseUrl = (req) => {
 };
 
 /**
- * Normalizes an image path for saving into the database.
- * If it contains an uploads path (even with http://localhost or https://...),
- * it extracts just the relative path: "uploads/..."
- * If it is an external URL (Cloudinary, etc.), keeps it as is.
+ * Normalizes an image path or URL for saving into the database.
+ * - If it is a Cloudinary or external URL (http:// or https://), keeps it as is.
+ * - If it contains a local uploads path, extracts relative path: "uploads/..."
  */
 export const normalizeUploadPath = (pathOrUrl) => {
     if (!pathOrUrl || typeof pathOrUrl !== "string") return pathOrUrl;
-    const match = pathOrUrl.match(/(?:uploads\/|uploads\\).+$/i);
+    const trimmed = pathOrUrl.trim();
+
+    // Preserve Cloudinary and external URLs
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        // If it points to an old localhost upload, extract relative path
+        if (trimmed.includes("localhost") || trimmed.includes("127.0.0.1")) {
+            const match = trimmed.match(/(?:uploads\/|uploads\\).+$/i);
+            if (match) {
+                return match[0].replace(/\\+/g, "/").replace(/\/+/g, "/");
+            }
+        }
+        return trimmed;
+    }
+
+    // Relative local upload path
+    const match = trimmed.match(/(?:uploads\/|uploads\\).+$/i);
     if (match) {
         return match[0].replace(/\\+/g, "/").replace(/\/+/g, "/");
     }
-    return pathOrUrl.trim();
+
+    return trimmed;
 };
 
 /**
  * Normalizes any image URL for output to clients:
- * - If it contains an uploads path, extracts relative path and prepends public base URL.
- * - If it's an external cloud URL (e.g. Cloudinary, S3), returns as-is.
+ * - If it's a Cloudinary URL or external cloud URL, returns as-is.
+ * - If it contains a legacy local uploads path, prepends public base URL.
  */
 export const formatImageUrl = (rawPath, req) => {
     if (!rawPath || typeof rawPath !== "string") return rawPath;
+    const trimmed = rawPath.trim();
+
+    // If it's a Cloudinary URL, return directly
+    if (trimmed.includes("cloudinary.com") || trimmed.includes("res.cloudinary.com")) {
+        return trimmed;
+    }
 
     // Check if it's an external third-party domain (not localhost, not our current domain)
-    const isLocalhost = rawPath.includes("localhost") || rawPath.includes("127.0.0.1");
-    const isExternal = (rawPath.startsWith("http://") || rawPath.startsWith("https://")) && !isLocalhost;
+    const isLocalhost = trimmed.includes("localhost") || trimmed.includes("127.0.0.1");
+    const isExternal = (trimmed.startsWith("http://") || trimmed.startsWith("https://")) && !isLocalhost;
 
-    // If it is an external URL from another service, only rewrite if it's our domain or contains /uploads/
     if (isExternal) {
-        const isOurDomain = rawPath.includes("food-ordering-brown-sigma.vercel.app") ||
-            (process.env.API_URL && rawPath.startsWith(process.env.API_URL));
-        if (!isOurDomain && !rawPath.includes("/uploads/")) {
-            return rawPath;
+        const isOurDomain = trimmed.includes("food-ordering-brown-sigma.vercel.app") ||
+            (process.env.API_URL && trimmed.startsWith(process.env.API_URL));
+        if (!isOurDomain && !trimmed.includes("/uploads/")) {
+            return trimmed;
         }
     }
 
-    const uploadMatch = rawPath.match(/(?:uploads\/|uploads\\).+$/i);
+    // Handle local uploads path
+    const uploadMatch = trimmed.match(/(?:uploads\/|uploads\\).+$/i);
     if (uploadMatch) {
         const relativePath = uploadMatch[0].replace(/\\+/g, "/").replace(/\/+/g, "/");
         const baseUrl = getBaseUrl(req);
         return `${baseUrl}/${relativePath}`;
     }
 
-    if (rawPath.startsWith("http://") || rawPath.startsWith("https://")) {
-        return rawPath;
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        return trimmed;
     }
 
-    const cleanPath = rawPath.replace(/^\/+/, "").replace(/\\+/g, "/").replace(/\/+/g, "/");
+    const cleanPath = trimmed.replace(/^\/+/, "").replace(/\\+/g, "/").replace(/\/+/g, "/");
     const baseUrl = getBaseUrl(req);
     return `${baseUrl}/${cleanPath}`;
 };
 
 /**
- * Safely removes a local file given an absolute URL or relative upload path.
+ * Safely removes a file:
+ * - If Cloudinary URL: destroys asset in Cloudinary
+ * - If local file: unlinks if exists without throwing in read-only environments
  */
-export const safeUnlinkUpload = (pathOrUrl) => {
+export const safeUnlinkUpload = async (pathOrUrl) => {
     if (!pathOrUrl || typeof pathOrUrl !== "string") return false;
+
+    // Cloudinary URL removal
+    if (pathOrUrl.includes("cloudinary.com") || pathOrUrl.includes("res.cloudinary.com")) {
+        return await deleteFromCloudinary(pathOrUrl);
+    }
+
+    // Local filesystem removal (safe for read-only environments like Vercel)
     try {
         const relativePath = normalizeUploadPath(pathOrUrl);
         if (!relativePath || relativePath.startsWith("http")) return false;
@@ -97,7 +128,7 @@ export const safeUnlinkUpload = (pathOrUrl) => {
             return true;
         }
     } catch (err) {
-        console.error("Failed to delete local upload:", err.message);
+        console.warn("safeUnlinkUpload: Unable to delete local file:", err.message);
     }
     return false;
 };

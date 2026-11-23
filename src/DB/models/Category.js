@@ -5,7 +5,7 @@ import { formatImageUrl, normalizeUploadPath } from "../../utils/imageUrl.js";
 const Category = sequelize.define("Category", {
     name: { type: DataTypes.STRING(100), allowNull: false },
     image: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(500),
         allowNull: true,
         get() {
             const rawValue = this.getDataValue("image");

@@ -1,8 +1,10 @@
 import Category from "../../DB/models/Category.js";
 import Dish from "../../DB/models/Dish.js";
 import Restaurant from "../../DB/models/Restaurant.js";
-import fs from "fs";
+import Cart from "../../DB/models/Cart.js";
+import { sequelize } from "../../DB/DBConnection.js";
 import { safeUnlinkUpload, normalizeUploadPath } from "../../utils/imageUrl.js";
+import { uploadStreamToCloudinary } from "../../utils/cloudinary.js";
 
 export const getAllDishes = async (req, res) => {
     try {
@@ -10,7 +12,7 @@ export const getAllDishes = async (req, res) => {
             {
                 attributes: ['id', 'name', 'description', 'price', 'image', 'is_available'],
                 include: [
-                    { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'], },
+                    { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'] },
                     { model: Category, as: 'category', attributes: ['name'] },
                 ],
             }
@@ -48,14 +50,13 @@ export const getPopularDishes = async (req, res) => {
     }
 };
 
-
 export const getDish = async (req, res) => {
     const { id } = req.params;
     const dish = await Dish.findOne({
         where: { id },
         attributes: ['name', 'description', 'price', 'image', 'is_available'],
         include: [
-            { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'], },
+            { model: Restaurant, as: 'restaurant', attributes: ['name', 'logo'] },
             { model: Category, as: 'category', attributes: ['name'] },
         ],
     });
@@ -67,7 +68,14 @@ export const getDish = async (req, res) => {
 export const addDish = async (req, res) => {
     try {
         const { restaurant_id, category_id, name, description, price, is_available } = req.body;
-        const image = req.file ? req.file.path.replace(/\\/g, "/") : (req.body.image ? normalizeUploadPath(req.body.image) : null);
+
+        let image = null;
+        if (req.file) {
+            const uploadResult = await uploadStreamToCloudinary(req.file.buffer, { folder: "dishes" });
+            image = uploadResult.secure_url;
+        } else if (req.body.image || req.body.image_url) {
+            image = normalizeUploadPath(req.body.image || req.body.image_url);
+        }
 
         const category = await Category.findOne({ where: { id: category_id } });
         if (!category) return res.status(404).json({ message: "Category not found" });
@@ -87,55 +95,64 @@ export const addDish = async (req, res) => {
 }
 
 export const updateDish = async (req, res) => {
-    const { id } = req.params;
-    const { category_id, name, description, price, is_available } = req.body;
+    try {
+        const { id } = req.params;
+        const { category_id, name, description, price, is_available } = req.body;
 
-    const dish = await Dish.findOne({ where: { id } });
-    if (!dish) return res.status(404).json({ message: "Dish not found" });
+        const dish = await Dish.findOne({ where: { id } });
+        if (!dish) return res.status(404).json({ message: "Dish not found" });
 
-    const owner = await Restaurant.findOne({ where: { id: dish.restaurant_id, owner_id: req.user.id } });
-    if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
+        const owner = await Restaurant.findOne({ where: { id: dish.restaurant_id, owner_id: req.user.id } });
+        if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
 
-    let image;
-    if (req.file) {
-        if (dish.dataValues.image) {
-            safeUnlinkUpload(dish.dataValues.image);
+        let image;
+        if (req.file) {
+            if (dish.dataValues.image) {
+                await safeUnlinkUpload(dish.dataValues.image);
+            }
+            const uploadResult = await uploadStreamToCloudinary(req.file.buffer, { folder: "dishes" });
+            image = uploadResult.secure_url;
+        } else if (req.body.image !== undefined || req.body.image_url !== undefined) {
+            image = normalizeUploadPath(req.body.image ?? req.body.image_url);
         }
-        image = req.file.path.replace(/\\/g, "/");
-    } else if (req.body.image !== undefined) {
-        image = normalizeUploadPath(req.body.image);
+
+        const updateData = {};
+        if (category_id) {
+            const category = await Category.findOne({ where: { id: category_id } });
+            if (!category) return res.status(404).json({ message: "Category not found" });
+            updateData.category_id = category_id;
+        }
+        if (image !== undefined) updateData.image = image;
+        if (name) updateData.name = name;
+        if (description) updateData.description = description;
+        if (price) updateData.price = price;
+        if (is_available !== undefined) updateData.is_available = is_available;
+
+        await dish.update(updateData);
+
+        res.status(200).json({ dish, message: "Dish updated successfully" });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
-
-    const updateData = {};
-    if (category_id) {
-        const category = await Category.findOne({ where: { id: category_id } });
-        if (!category) return res.status(404).json({ message: "Category not found" });
-        updateData.category_id = category_id;
-    };
-    if (image !== undefined) updateData.image = image;
-    if (name) updateData.name = name;
-    if (description) updateData.description = description;
-    if (price) updateData.price = price;
-    if (is_available) updateData.is_available = is_available;
-
-    await dish.update(updateData);
-
-    res.status(200).json({ dish, message: "Dish updated successfully" });
 }
 
 export const deleteDish = async (req, res) => {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
 
-    const dish = await Dish.findOne({ where: { id } });
-    if (!dish) return res.status(404).json({ message: "Dish not found" });
+        const dish = await Dish.findOne({ where: { id } });
+        if (!dish) return res.status(404).json({ message: "Dish not found" });
 
-    const owner = await Restaurant.findOne({ where: { id: dish.restaurant_id, owner_id: req.user.id } });
-    if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
+        const owner = await Restaurant.findOne({ where: { id: dish.restaurant_id, owner_id: req.user.id } });
+        if (!owner) return res.status(400).json({ message: "Invalid owner_id or user is not a restaurant owner" });
 
-    if (dish.dataValues.image) {
-        safeUnlinkUpload(dish.dataValues.image);
+        if (dish.dataValues.image) {
+            await safeUnlinkUpload(dish.dataValues.image);
+        }
+
+        await dish.destroy();
+        res.status(200).json({ message: "Dish deleted successfully" });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
-
-    await dish.destroy();
-    res.status(200).json({ message: "Dish deleted successfully" });
 }

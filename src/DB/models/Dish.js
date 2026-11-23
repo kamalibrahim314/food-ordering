@@ -9,7 +9,7 @@ const Dish = sequelize.define("Dish", {
     description: { type: DataTypes.TEXT, allowNull: false },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     image: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(500),
         allowNull: true,
         get() {
             const rawValue = this.getDataValue("image");
